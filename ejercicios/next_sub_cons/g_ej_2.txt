@@ -1,0 +1,4 @@
+Solución al ejercicio:
+Realizar una consulta que genere un reporte de la perfomance de cada tienda (store), empleado y film por cada combinación válida de estos tres (tener en cuenta que un empleado sólo trabaja en una tienda ) indicar cuanto se recaudó y cuantos alquileres se realizaron, si para una combinación válida de tienda, empleado y film no se registran alquileres y/o recaudación se deberá poner 0, no se admitirá null.
+
+Los datos actuales es sólo un estado posible de los datos, la consulta debe funcionar para cualquier estado.

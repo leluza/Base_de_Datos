@@ -1,0 +1,51 @@
+CREATE DEFINER=`root`@`%` PROCEDURE `AltaInventory`(vfilm_id int,vstore_id int)
+
+BEGIN
+
+   declare cant int;
+
+   select count(*) into cant 
+
+   from film 
+
+   where film_id = vfilm_id;
+
+   if cant = 0 then
+
+      select 'ERROR';
+
+   else 
+
+      insert into inventory (film_id,store_id) 
+
+      values (vfilm_id,vstore_id);
+
+      select 'ok';
+
+   end if;
+
+  
+
+END
+
+# que hace la primer linea?????
+
+
+
+#Es una funcion, carga en la tabla inventory, una fila
+
+# esto lo hace, sii, existe 1 o mas registros en la tabla film
+
+
+
+#  declare cant int; --> declaracion de variable local
+
+# los parametros no sin ni IN ni OUT
+
+# count(*) into cant  --> carga la variable 
+
+
+
+
+# select 'ERROR'; --> que hace????  ---> muestra msj
+#   select 'ok'; --> es lo que muestra por salida ---> muestra msj

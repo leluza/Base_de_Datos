@@ -1,0 +1,11 @@
+Ejemplo 1 - Solución Ejercicio Consulta SQL
+Ejemplo de solución a la siguiente consulta:
+
+- Genere una consulta SQL sobre la base Sakila que retorne una tabla de 4 columnas que tenga 1 registro por cada "actor" con los campos:
+
+. Apellido del Actor
+. Cantidad de films que superaron la recaudación promedio de todos los films de la base de datos - Usar el campo amount de la tabla payment.
+. Cantidad de categorías distintas de los films del actor.
+. Cantidad total de alquileres de films en los que participó.
+
+El estado de los datos es uno de los posibles de la Base de Datos, la consulta debe funcionar cuelquiera sea el estado.

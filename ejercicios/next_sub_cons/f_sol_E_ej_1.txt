@@ -1,0 +1,242 @@
+#Genere una consulta SQL sobre la base Sakila que retorne una tabla 
+#de 4 columnas que tenga 1 registro por cada "actor" con los campos:
+#. Apellido del Actor
+#. Cantidad de films que superaron la recaudación promedio 
+#de todos los films de la base de datos - Usar el campo amount de la tabla payment.
+#. Cantidad de categorías distintas de los films del actor.
+#. Cantidad total de alquileres de films en los que participó.
+#El estado de los datos es uno de los posibles de la Base de Datos,
+# la consulta debe funcionar cuelquiera sea el estado.
+
+#. Cantidad de films que superaron la recaudación promedio 
+#de todos los films de la base de datos - Usar el campo amount de la tabla payment.
+
+#Para cada film calculo la recaudación
+SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+FROM film f 
+LEFT JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY f.film_id;
+
+#Recaudación promedio de todos los films
+SELECT AVG(r.recaudacion)
+FROM (
+		SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+		FROM film f 
+		LEFT JOIN inventory i ON i.film_id = f.film_id
+		LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+		LEFT JOIN payment p ON r.rental_id = p.rental_id
+		GROUP BY f.film_id
+) r;
+
+#Para cada actor obtengo los films en los que participó
+SELECT a.actor_id as actor_id, fa.film_id as film_id
+FROM actor a
+LEFT JOIN film_actor fa
+ON a.actor_id = fa.actor_id;
+
+#Para cada actor se calcula la recaudación de cada film en los que participó
+SELECT t.actor_id, t.film_id,
+	 (
+		SELECT ifnull(SUM(p.amount), 0) AS recaudacion
+		FROM film f 
+		LEFT JOIN inventory i ON i.film_id = f.film_id 
+		LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+		LEFT JOIN payment p ON r.rental_id = p.rental_id
+        WHERE  f.film_id = t.film_id
+	)  AS recaudacion
+	FROM (
+		SELECT a.actor_id as actor_id, fa.film_id as film_id
+		FROM actor a
+		LEFT JOIN film_actor fa
+		ON a.actor_id = fa.actor_id
+	) AS t;
+
+#Se filtran aquellos films cuya recaudacion es mayor a la recaudacion promedio de todos los films
+SELECT t.actor_id, t.film_id, t.recaudacion
+FROM (
+	SELECT actor_id, film_id,
+	 (
+		SELECT ifnull(SUM(p.amount), 0) AS recaudacion
+		FROM film f 
+		LEFT JOIN inventory i ON i.film_id = f.film_id 
+		LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+		LEFT JOIN payment p ON r.rental_id = p.rental_id
+		WHERE i.film_id = film_actor.film_id
+	)  AS recaudacion
+	FROM (
+		SELECT a.actor_id as actor_id, fa.film_id as film_id
+		FROM actor a
+		LEFT JOIN film_actor fa
+		ON a.actor_id = fa.actor_id
+	) AS film_actor
+) t
+WHERE recaudacion > 
+(
+	SELECT AVG(r.recaudacion)
+	FROM (
+			SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+			FROM film f 
+			LEFT JOIN inventory i ON i.film_id = f.film_id
+			LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+			LEFT JOIN payment p ON r.rental_id = p.rental_id
+			GROUP BY f.film_id
+	) r
+);
+
+#Por otra parte, lo anterior también se puede calcular mediante  JOIN y clausula HAVING
+SELECT a.actor_id AS actor_id, f.film_id AS film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+FROM actor a
+LEFT JOIN film_actor fa ON a.actor_id = fa.actor_id
+LEFT JOIN film f ON f.film_id = fa.film_id
+LEFT JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+LEFT JOIN payment p ON r.rental_id = p.rental_id
+GROUP BY a.actor_id, f.film_id
+HAVING ifnull(SUM(p.amount), 0) > (
+	SELECT AVG(r.recaudacion)
+	FROM (
+			SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+			FROM film f 
+			LEFT JOIN inventory i ON i.film_id = f.film_id
+			LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+			LEFT JOIN payment p ON r.rental_id = p.rental_id
+			GROUP BY f.film_id
+	) r
+);
+
+#Para cada actor se calcula la cantidad de films cuya recaudación es mayor a la recaudación promedio
+SELECT actor_id, COUNT(*)
+FROM (
+	SELECT actor_id, film_id,
+	 (
+		SELECT ifnull(SUM(p.amount), 0) AS recaudacion
+		FROM film f 
+		LEFT JOIN inventory i ON i.film_id = f.film_id 
+		LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+		LEFT JOIN payment p ON r.rental_id = p.rental_id
+		WHERE i.film_id = film_actor.film_id
+	)  AS recaudacion
+	FROM (
+		SELECT a.actor_id as actor_id, fa.film_id as film_id
+		FROM actor a
+		LEFT JOIN film_actor fa
+		ON a.actor_id = fa.actor_id
+	) AS film_actor
+) t
+WHERE recaudacion > 
+(
+	SELECT AVG(r.recaudacion)
+	FROM (
+			SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+			FROM film f 
+			LEFT JOIN inventory i ON i.film_id = f.film_id
+			LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+			LEFT JOIN payment p ON r.rental_id = p.rental_id
+			GROUP BY f.film_id
+	) r
+)
+GROUP BY actor_id;
+
+#Por último, utilizando la clausula HAVING la solución queda
+SELECT actor_id, COUNT(*)
+FROM (
+	SELECT a.actor_id AS actor_id, f.film_id AS film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+	FROM actor a
+	LEFT JOIN film_actor fa ON a.actor_id = fa.actor_id
+	LEFT JOIN film f ON f.film_id = fa.film_id
+	LEFT JOIN inventory i ON i.film_id = f.film_id
+	LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+	LEFT JOIN payment p ON r.rental_id = p.rental_id
+	GROUP BY a.actor_id, f.film_id
+	HAVING ifnull(SUM(p.amount), 0) > (
+		SELECT AVG(r.recaudacion)
+		FROM (
+			SELECT f.film_id, ifnull(SUM(p.amount), 0) AS recaudacion
+			FROM film f 
+			LEFT JOIN inventory i ON i.film_id = f.film_id
+			LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+			LEFT JOIN payment p ON r.rental_id = p.rental_id
+			GROUP BY f.film_id
+		) r
+	)
+) t
+GROUP BY actor_id;
+
+
+#. Cantidad de categorías distintas de los films del actor.
+
+#Para cada actor, obtengo los films en los que participó y categoria del film
+SELECT a.actor_id AS actor_id, fa.film_id, fc.category_id AS categoria
+FROM actor a
+LEFT JOIN film_actor fa
+ON a.actor_id = fa.actor_id
+LEFT JOIN film_category fc
+ON fa.film_id = fc.film_id;
+
+#Para cada actor, calculo la cantidad de categorías distintas de los films en los que participó
+SELECT a.actor_id AS actor_id, COUNT(distinct fc.category_id) AS categorias
+FROM actor a
+LEFT JOIN film_actor fa
+ON a.actor_id = fa.actor_id
+LEFT JOIN film_category fc
+ON fa.film_id = fc.film_id
+GROUP BY a.actor_id;
+
+
+#. Cantidad total de alquileres de films en los que participó.
+
+#Se calcula para cada film la cantidad total de alquileres
+SELECT i.film_id, COUNT(r.rental_id) AS cantidad_alquileres
+FROM film f
+LEFT JOIN inventory i ON i.film_id = f.film_id
+LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+GROUP BY f.film_id;
+
+#Para cada actor, obtengo los films en los que participó y calculo la cantidad total de alquileres
+SELECT a.actor_id AS actor_id, fa.film_id AS film_id, ifnull(s.cantidad_alquileres,0) AS cantidad_alquileres
+FROM actor a
+LEFT JOIN film_actor fa
+ON a.actor_id = fa.actor_id
+LEFT JOIN (
+	SELECT i.film_id, COUNT(r.rental_id) AS cantidad_alquileres
+	FROM film f
+	LEFT JOIN inventory i ON i.film_id = f.film_id
+	LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+	GROUP BY f.film_id
+) s ON s.film_id = fa.film_id;
+
+#Por último, para cada actor calculo la cantidad total de alquileres de sus films
+SELECT t.actor_id, SUM(t.cantidad_alquileres)
+FROM (
+	SELECT a.actor_id AS actor_id, fa.film_id AS film_id, ifnull(s.cantidad_alquileres,0) AS cantidad_alquileres
+	FROM actor a
+	LEFT JOIN film_actor fa
+	ON a.actor_id = fa.actor_id
+	LEFT JOIN (
+		SELECT i.film_id, COUNT(r.rental_id) AS cantidad_alquileres
+		FROM film f
+		LEFT JOIN inventory i ON i.film_id = f.film_id
+		LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+		GROUP BY f.film_id
+	) s ON s.film_id = fa.film_id
+) t 
+GROUP BY t.actor_id;
+
+#Lo anterior se puede calcular también de esta manera:
+
+SELECT a.actor_id, SUM( (
+	SELECT COUNT(r.rental_id) AS cantidad_alquileres
+	FROM film f
+	LEFT JOIN inventory i ON i.film_id = f.film_id
+	LEFT JOIN rental r ON i.inventory_id = r.inventory_id
+	WHERE f.film_id = fa.film_id 
+)) AS cantidad_alquileres
+FROM actor a
+LEFT JOIN film_actor fa ON a.actor_id =  fa.actor_id
+GROUP BY a.actor_id;
+
+
+
+

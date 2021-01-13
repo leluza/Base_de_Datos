@@ -1,0 +1,69 @@
+Respuesta Practica 1
+Seleccionar todos los clientes (apellido y nombre) 
+cuyo pagos promedios historicos 
+sean mayores que los pagos promedios de todos 
+los clientes
+
+select last_name,first_name from customer join
+  (select avg(amount) prom,customer_id from payment  
+     group by customer_id) promedios 
+  on promedios.customer_id = customer.customer_id
+where prom > (select avg(amount) from payment) 
+
+Seleccionar los actores (apellido y nombre) 
+cuyas peliculas hayan sido rentadas al menos 
+una vez en el mes de mayo
+
+select a.first_name nom,a.last_name ape from actor a  
+   join film_actor fa on a.actor_id = fa.actor_id
+   join inventory i on i.film_id = fa.film_id
+   join rental r on r.inventory_id = i.inventory_id
+   where month(r.rental_date) = 5
+   group by a.first_name,a.last_name,a.actor_id,a.actor_id
+
+Seleccionar el/los actor/es que participo en peliculas 
+de todos las categorias
+
+select first_name,last_name from actor ac where ac.actor_id in
+(select a.actor_id from
+   actor a
+   join film_actor fa on a.actor_id = fa.actor_id
+   join film_category fc on fc.film_id = fa.film_id
+   group by a.actor_id
+having count(distinct fc.category_id) = (select count(*) from category)
+)  #Mas ineficiente
+
+select first_name,last_name from actor ac, 
+ (select count(distinct fc.category_id) cancat,a.actor_id aid from
+   actor a
+   join film_actor fa on a.actor_id = fa.actor_id
+   join film_category fc on fc.film_id = fa.film_id
+   group by a.actor_id
+ having  cancat = (select count(*) from category)
+ ) res 
+where ac.actor_id =res.aid
+#Mas eficiente
+
+Seleccionar el/los actor/es que participo en peliculas 
+de mas de 3 categorias
+
+select first_name,last_name from actor ac, 
+ (select count(distinct fc.category_id) cancat,a.actor_id aid from
+   actor a
+   join film_actor fa on a.actor_id = fa.actor_id
+   join film_category fc on fc.film_id = fa.film_id
+   group by a.actor_id
+ having  cancat >= 3
+ ) res 
+where ac.actor_id =res.aid
+
+Seleccionar los clientes que deben retornar videos
+
+select c.first_name, c.last_name
+   from rental r 
+   join inventory i on i.inventory_id = r.inventory_id
+   join film f on f.film_id = i.film_id
+   join customer c on c.customer_id = r.customer_id
+where return_date is null 
+    and adddate(rental_date,rental_duration) < now()
+

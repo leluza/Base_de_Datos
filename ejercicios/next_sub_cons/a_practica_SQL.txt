@@ -1,0 +1,197 @@
+SELECCIONAR LOS ACTORES QUE ACTUARON AL MENOS EN UNA PELICULA QUE DURE MENOS DE 70 min
+
+select actor.first_name,actor.last_name 
+
+from actor 
+
+where 
+  70 > ANY
+  (select length from 
+    film join film_actor 
+      on film.film_id = film_actor.film_id
+
+    where actor.actor_id = film_actor.actor_id)
+
+
+SELECCIONAR LOS 5 ACTORES QUE MAS TIEMPO ACTUARON 
+                      SUMANDO LA DURACION DE TODAS SUS PELICULAS
+
+select actor.first_name,actor.last_name, duracion_total
+
+from actor, 
+
+  (select sum(length) duracion_total,actor_id 
+    from 
+
+      film join film_actor 
+
+        on film.film_id = film_actor.film_id
+
+    group by actor_id) len
+where actor.actor_id =  len.actor_id
+
+order by duracion_total desc
+
+limit 5
+
+	01____________________________________________________________________________________________________________________
+
+SELECCIONAR LOS ACTORES QUE ACTUARON AL MENOS EN UNA PELICULA QUE DURE MENOS DE 70 min
+
+lista de peli con duracion < 70, join con los actores que estuvieron en ellas
+
+select  a.actor_id, a.fisrt_name, a.last_name
+
+from (select * from film f where f.duracion < 70 min) sc1
+
+left join film_actor fa using (film_id) 
+ 
+left join actor a using (actor_id)
+
+group by actor_id
+
+
+	02-----------------------------------------------------------------------------------------
+
+SELECCIONAR LOS 5 ACTORES QUE MAS TIEMPO ACTUARON SUMANDO LA DURACION DE TODAS SUS PELICULAS
+
+actor & sus peliculas --> sum( duracion) agrupando x actor
+
+
+ select sum(f.duracion) as performance , a.actor_id, a.first_name, a.last_name
+from actor a
+left join film_actor fa using (actor_id)
+left join film f	using (film_id)
+group by actor_id 
+order by performance desc
+limit 5
+
+
+
+	03**********************************************************************************************************************
+SELECCIONAR LA/S PELICULA/S EN LA QUE ACTUARON MAS ACTORES
+
+select   f.title as title  , count(*) as elenco
+  from film f
+  left join film_actor fa using (film_id)
+  left join actor 	using (actor_id)
+
+ where ( title, elenco) in
+
+(select title, max(elenco) as elenco from
+ (select   f.title as title  , count(*) as elenco
+  from film f
+  left join film_actor fa using (film_id)
+  left join actor 	using (actor_id)
+  group by f.film_id  ) sc1
+ ) sc2
+
+  group by f.film_id
+
+
+
+	04____________________________________________________________________________________________________________________
+
+GENERAR UN LISTADO DE TODOS LOS ACTORES, CANTIDAD DE PELICULAS QUE ACTUARON, 
+CANTIDAD DE CATEGORIAS, MONTO RECAUDADO (INCLUIR TODOS LOS ACTORES)
+
+
+---> CANTIDAD DE PELICULAS QUE ACTUARON,
+
+select a.actor_id, a.first_name, a.last_name, count(*) as cant_pelis
+from actor a
+left join film_actor fa using ( actor_id)
+left join film f	using (film_id)
+group by a.actor_id
+
+
+----> CANTIDAD DE CATEGORIAS
+
+select a.actor_id, a.first_name, a.last_name, count(*) as cant_cat
+from actor a
+left join film_actor fa using ( actor_id)
+left join film f	using (film_id)
+left join film_category fc using (film_id)
+group by a.actor_id
+
+
+
+
+---->  MONTO RECAUDADO
+
+select a.actor_id, a.first_name, a.last_name, sum( p.amount) as recaudado
+from actor a
+left join film_actor fa using ( actor_id)
+left join inventori i	using (film_id)
+left join rental r 	using (inventory_id)
+ñeft join payment p 	using ( rental_id)
+
+group by a.actor_id
+
+
+...
+
+select sc1.fn, sc1.ln, sc1.cant_pelis, sc2.cant_cat, sc3.recaudado
+
+from (select a.actor_id as act, a.first_name as fn, a.last_name as ln, count(*) as cant_pelis
+	from actor a
+	left join film_actor fa using ( actor_id)
+	left join film f	using (film_id)
+	group by a.actor_id ) sc1
+
+join
+
+(select a.actor_id as act, a.first_name, a.last_name, count(*) as cant_cat
+from actor a
+left join film_actor fa using ( actor_id)
+left join film f	using (film_id)
+left join film_category fc using (film_id)
+group by a.actor_id )sc2
+
+using (act)
+join
+
+(select a.actor_id as act, a.first_name, a.last_name, sum( p.amount) as recaudado
+from actor a
+left join film_actor fa using ( actor_id)
+left join inventori i	using (film_id)
+left join rental r 	using (inventory_id)
+ñeft join payment p 	using ( rental_id)
+group by a.actor_id ) sc3
+
+using (a.actor_id)
+
+
+
+	05**********************************************************************************************************************
+
+MOSTRAR LOS ACTORES QUE ACTUARON EN LA/S PELICULA/S MAS LARGA/S
+
+sacar duracion maxima
+select  max(duracion) as record
+from film f
+
+
+hacer lista peliculas que tengas duracion == duracion_max
+
+select f.film_id
+from film f
+join (select  max(f.length) as record from film f) t1 
+on f.length == t1.record
+
+
+lista actores que estuvieron en estas pelis
+
+select INFO ACTOR
+from film f
+join (select  max(duracion) as record from film f) t1  	on f.duracion == t1.record
+join film_actor fc using (film_id)
+join actor a 	   using (actor_id)
+group by actor_id
+
+
+
+
+
+
+
