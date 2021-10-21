@@ -11,7 +11,6 @@ select cm.first_name, cm.last_name
 from customer CM
 join address a
 using (address_id)
-#JUNTA TABLA ADRES, en funcion a filas de customers 599f
 
 join city cy
 using (city_id)
